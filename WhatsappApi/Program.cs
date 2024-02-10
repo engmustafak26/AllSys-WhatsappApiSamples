@@ -20,6 +20,8 @@ namespace WhatsappApi
 
         static void Main(string[] args)
         {
+            //Send To Group Api
+            //******************
             // This code for .net core applications
             var sendToGroupResponseDotNetCore = DotNetCore_SendToGroupApi().Result;
             Console.WriteLine("Status: " + sendToGroupResponseDotNetCore.IsSuccess + " - Message: " + sendToGroupResponseDotNetCore.Message);
@@ -27,9 +29,22 @@ namespace WhatsappApi
             //this code for .net framework applications
             var sendToGroupResponseDotNet = DotNet_SendToGroupApi();
             Console.WriteLine("Status: " + sendToGroupResponseDotNet.IsSuccess + " - Message: " + sendToGroupResponseDotNet.Message);
+            
+            //---------------------------------------------------------------------------------------
+
+            //Send To Group Api
+            //*****************
+            // This code for .net core applications
+            var otpDotNetResponse = DotNetCore_SendOTPApi().Result;
+            Console.WriteLine("Status: " + otpDotNetResponse.IsSuccess + " - Message: " + otpDotNetResponse.Message);
+
+            //this code for .net framework applications
+            var otpDotNetCoreResponse = DotNet_SendOTPApi();
+            Console.WriteLine("Status: " + otpDotNetCoreResponse.IsSuccess + " - Message: " + otpDotNetCoreResponse.Message);
 
         }
 
+        #region Send To Group Api for DotnetCore/DotNetDesktop
         static async Task<BaseResponseDto<EmptyResponseDto>> DotNetCore_SendToGroupApi()
         {
 
@@ -91,6 +106,71 @@ namespace WhatsappApi
             return Newtonsoft.Json.JsonConvert.DeserializeObject<BaseResponseDto<EmptyResponseDto>>(responseFromServer);
 
         }
+        #endregion
+
+        #region Send Otp Api for DotnetCore/DotNetDesktop
+        static async Task<BaseResponseDto<EmptyResponseDto>> DotNetCore_SendOTPApi()
+        {
+
+#if NETCOREAPP2_0_OR_GREATER
+            SendOtpRequestDto requestDto = new SendOtpRequestDto
+            {
+                Message = "Test Message - رسالة تجربة", // your message
+                Number = "" //number must start with Country Code (e.g "20", "966", ...)
+
+            };
+            string serializedRequest = Newtonsoft.Json.JsonConvert.SerializeObject(new BaseRequestDto<SendOtpRequestDto>(requestDto));
+
+            var client = new System.Net.Http.HttpClient();
+            var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, GenerateRequestUrl("Sender/SendOtp"));
+            request.Headers.Add("accept", "*/*");
+            var content = new System.Net.Http.StringContent(serializedRequest, System.Text.Encoding.UTF8, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            string responseContent = await response.Content.ReadAsStringAsync();
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<BaseResponseDto<EmptyResponseDto>>(responseContent);
+#endif
+            return new BaseResponseDto<EmptyResponseDto>();
+
+        }
+        static BaseResponseDto<EmptyResponseDto> DotNet_SendOTPApi()
+        {
+
+            SendOtpRequestDto requestDto = new SendOtpRequestDto
+            {
+                Message = "Test Message - رسالة تجربة", // your message
+                Number = "" //number must start with Country Code (e.g "20", "966", ...)
+
+            };
+            string serializedRequest = Newtonsoft.Json.JsonConvert.SerializeObject(new BaseRequestDto<SendOtpRequestDto>(requestDto));
+
+
+            UTF8Encoding encoding = new UTF8Encoding();
+            byte[] bytes = encoding.GetBytes(serializedRequest);
+            System.Net.HttpWebRequest httpRequest = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(GenerateRequestUrl("Sender/SendOtp"));
+            httpRequest.Method = "POST";
+            httpRequest.ContentType = "application/json";
+            httpRequest.ContentLength = bytes.Length;
+            using (Stream stream = httpRequest.GetRequestStream())
+            {
+                stream.Write(bytes, 0, bytes.Length);
+                stream.Close();
+            }
+
+            WebResponse webResponse = httpRequest.GetResponse();
+            Console.WriteLine(((HttpWebResponse)webResponse).StatusDescription);
+            var webData = webResponse.GetResponseStream();
+            StreamReader reader = new StreamReader(webData);
+            string responseFromServer = reader.ReadToEnd();
+            reader.Close();
+            webData.Close();
+            webResponse.Close();
+
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<BaseResponseDto<EmptyResponseDto>>(responseFromServer);
+
+        }
+        #endregion
 
         static string GenerateRequestUrl(string endPoint)
         {
